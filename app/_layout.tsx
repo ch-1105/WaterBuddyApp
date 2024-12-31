@@ -6,6 +6,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { requestNotificationPermissions } from '../utils/notificationService';
+import { getData, STORAGE_KEYS } from '../utils/storage';
+import { setupNotifications, scheduleNotification } from '../utils/notifications';
+import { Reminder } from '../utils/storage';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -23,6 +27,29 @@ export default function RootLayout() {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
+
+  useEffect(() => {
+    requestNotificationPermissions();
+  }, []);
+
+  useEffect(() => {
+    const initializeApp = async () => {
+      // 设置通知
+      await setupNotifications();
+      
+      // 恢复保存的提醒
+      const savedReminders = await getData(STORAGE_KEYS.REMINDERS);
+      if (savedReminders) {
+        savedReminders.forEach(async (reminder: Reminder) => {
+          if (reminder.enabled) {
+            await scheduleNotification(reminder);
+          }
+        });
+      }
+    };
+
+    initializeApp();
+  }, []);
 
   if (!loaded) {
     return null;
